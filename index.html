@@ -64,7 +64,9 @@
         <script src="scrollSlide.js"></script>
         <script type="text/javascript">
             slideScroll.init({
-                speed: 0.3
+                slides:     document.getElementById("images").getElementsByTagName("div"),
+                links:      document.getElementById("menu").getElementsByTagName("a"),
+                sections:   document.getElementById("contents").getElementsByTagName("section")
             });
             
             window.onscroll = function(e){

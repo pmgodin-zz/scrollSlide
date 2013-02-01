@@ -20,6 +20,7 @@ body{
 #contents section:nth-child(3){left: 200%;}
 #contents section:nth-child(4){left: 300%;}
 #contents section:nth-child(5){left: 400%;}
+#contents section:nth-child(6){left: 500%;}
 #contents article{
 	background: #FFF;
 	margin: 300px auto 0;

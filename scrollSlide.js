@@ -6,10 +6,10 @@
 *
 */
 var slideScroll = {
-	slides: 		document.getElementById("images").getElementsByTagName("div"),
+	slides: 		null,
 	lastScroll: 	0,
-	links: 			document.getElementById("menu").getElementsByTagName("a"),
-	sections: 		document.getElementById("contents").getElementsByTagName("section"),
+	links: 			null,
+	sections: 		null,
 	speed: 			0.5, 
 	width: 			null,
 
