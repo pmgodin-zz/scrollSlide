@@ -15,11 +15,25 @@
         <meta name="viewport" content="width=device-width">
         <link rel="stylesheet" href="style.css">
         <style>
-            #contents section:nth-child(2){top: 100%; left: 0;}
-            #contents section:nth-child(3){top: 200%; left: 0;}
-            #contents section:nth-child(4){top: 300%; left: 0;}
-            #contents section:nth-child(5){top: 400%; left: 0;}
-            #contents section:nth-child(6){top: 500%; left: 0;}
+            #contents section{
+                min-height: 200px;
+                padding-top: 200px;
+                position: relative;
+            }
+            #contents section article{
+                margin-top: 0;
+            }
+            #contents section:nth-child(2){top: 0; left: 0; width: 100%;}
+            #contents section:nth-child(3){top: 0; left: 0;}
+            #contents section:nth-child(4){top: 0; left: 0;}
+            #contents section:nth-child(5){top: 0; left: 0;}
+            #contents section:nth-child(6){top: 0; left: 0;}
+
+            footer{
+                background: red;
+                height: 800px;
+            }
+            header{height: 200px;}
         </style>
     </head>
     <body>
@@ -32,6 +46,9 @@
                 <li><a href="#">Content 5</a></li>
                 <li><a href="#">Content 6</a></li>
             </ul>
+            Jesuis le head qui prend de la place!!!<br />dolor sit amet, consectetur adipiscing elit. Integer ut metus ac turpis aliquam tincidunt ullamcorper quis turpis. Phasellus et eros non quam tincidunt ultricies sit amet sit amet erat. Sed vel nulla pretium eros rhoncus dapibus. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec risus massa, ullamcorper eget ultricies in, tincidunt at ipsum. Fusce tempus sollicitudin erat tincidunt euismod. Ut nibh massa, ornare posuere tempor non, placerat eu augue. Suspendisse commodo volutpat rutrum. Fusce magna nisi, eleifend sed consectetur non, ultrices vel libero. In hac habitasse platea dictumst. Maecenas malesuada, nibh non pharetra tempus, orci purus lobortis leo, eu aliquam magna nisl et elit. Nam eleifend semper justo sit amet mattis. Curabitur laoreet nibh ut sem scelerisque vulputate. In sem lacus, dictum eget volutpat a, porttitor sit amet purus.
+
+            <strong>Phallus id neque neque, quis mollis lacus.</strong>
         </header>
 
         <div id="images">
@@ -62,7 +79,9 @@
             <section><article>Content 4</article></section>
             <section><article>Content 5</article></section>
             <section><article>Content 6</article></section>
+            
         </div>
+        <!-- footer>Footer</footer -->
 
         <script type="text/javascript" src="greensock-tween/easing/EasePack.min.js"></script>
         <script type="text/javascript" src="greensock-tween/plugins/CSSPlugin.min.js"></script>
@@ -74,7 +93,7 @@
                 slides:     document.getElementById("images").getElementsByTagName("div"),
                 links:      document.getElementById("menu").getElementsByTagName("a"),
                 sections:   document.getElementById("contents").getElementsByTagName("section"),
-                axis:       "y" 
+                axis:       "y"
             }).init();
         </script>
     </body>

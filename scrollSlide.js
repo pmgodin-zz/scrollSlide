@@ -12,6 +12,7 @@ var slideScroll = function(options){
 	var _this = this;
 	this.params = {
 		axis: 			"x",
+		keepLimits: 	true, 
 		links: 			null,
 		sections: 		null,
 		selected: 		"selected", 
@@ -23,21 +24,49 @@ var slideScroll = function(options){
 	}
 	this.params.lastScroll = 0;
 	this.params.size = {w:0,h:0};
-	this.step = 0;
+	this.params.maxSize = 0;
+	this.step = -1;
+
+	var pos = {
+		scroll: "scrollX",
+		start:  "offsetLeft",
+		size: 	"offsetWidth",
+		style: 	"width"
+	}
+	if(this.params.axis=="y"){
+		pos = {
+			scroll: "scrollY",
+			start:  "offsetTop",
+			size: 	"offsetHeight",
+			style: 	"height"
+		}
+	}
+	var scroll = {};
+
 	//this.params.window = (window.innerHeight) ? {width: window.innerWidth, height: window.innerHeight} : {width: document.body.clientWidth, height: document.body.clientHeight};
 
 	this.init = function(){
-		this.params.size.w = this.params.sections[0].offsetWidth;
+		this.params.size = {w:this.params.sections[0].offsetWidth, h:this.params.sections[0].offsetHeight};
 
 		for(var i=0; i<this.params.sections.length; i++){
-			_this.params.links[i].href = "#"+i;
-			_this.params.links[i].onclick = function(){
-				var index = this.href.split("#")[1];
-				_this.classes(index);
-				_this.tween(_this.params.sections[index]);
-				return false;
+			this.params.maxSize += this.params.sections[i][pos.size];
+			if(_this.params.links[i]){
+				_this.params.links[i].href = "#"+i;
+				_this.params.links[i].onclick = function(){
+					var index = this.href.split("#")[1];
+					_this.classes(index);
+					_this.tween(_this.params.sections[index]);
+					return false;
+				}
 			}
 		}
+
+		if(this.params.maxSize < this.params.sections[this.params.sections.length-1][pos.start]){
+			var	add = this.params.sections[this.params.sections.length-1][pos.start]-this.params.maxSize;
+			this.params.sections[this.params.sections.length-1].style[pos.style] = this.params.sections[this.params.sections.length-1][pos.size]+add+"px";
+			console.log(this.params.sections[this.params.sections.length-1][pos.size]);
+		}
+
 		// auto select slide onload
 		_this.switch(window);
 	}
@@ -46,7 +75,7 @@ var slideScroll = function(options){
 		for(var i=0; i<this.params.links.length; i++){
 			this.params.links[i].className = this.params.links[i].className.replace(" " + this.params.selected,"");
 		}
-		this.params.links[index].className += " " + this.params.selected;
+		if(this.params.links[index]) this.params.links[index].className += " " + this.params.selected;
 	}
 
 	this.hideAll = function(){
@@ -56,34 +85,40 @@ var slideScroll = function(options){
 	}
 
 	this.switch = function(el){
+		var changed = false;
 		for(s in this.params.sections){
-			if(el.scrollX >= this.params.sections[s].offsetLeft && el.scrollX <= (this.params.sections[s].offsetLeft+this.params.sections[s].offsetWidth)){
+			if(el[pos.scroll] >= this.params.sections[s][pos.start] && el[pos.scroll] <= (this.params.sections[s][pos.start]+this.params.sections[s][pos.size])){
 				this.step = parseInt(s);
 				this.params.size = {w: this.params.sections[this.step].offsetWidth, h:this.params.sections[this.step].offsetHeight};
 			};
 		}
+		
+		var limit = 0;
+		if(el[pos.scroll]<this.params.sections[0][pos.start]) limit = -1;
+		if(el[pos.scroll]>this.params.sections[this.params.sections.length-1][pos.start]) limit = this.params.sections;
 
 		var step = this.step;
-		this.classes(step);
+		var cur = (limit==-1) ? -1 : step+1;
+		var next = (limit==-1) ? 0 :step;
 
-		if(this.params.slides){
-			var progress = 1-((this.params.sections[step].offsetLeft+this.params.sections[step].offsetWidth)-el.scrollX)/this.params.sections[step].offsetWidth;
-			var cur = (sens) ? step : step+1;
-			var next = (sens) ? step+1 : step;
-
-			var sens = this.params.lastScroll<el.scrollX;
-			this.params.lastScroll = el.scrollX;
-			
+		if(limit==0){
+			this.classes(step);
+		}else{
+			this.classes(limit);
+		}
+		if(!this.params.keepLimits) limit = 0;
+		
+		if(limit==0 && this.params.slides && this.params.sections[step]){
+			var progress = Math.abs(1-((this.params.sections[step][pos.start]+this.params.sections[step][pos.size])-el[pos.scroll])/this.params.sections[step][pos.size]);
 			this.hideAll();
 
-			var cur = this.params.slides[cur];
-			var next = this.params.slides[next];
-
+			cur = this.params.slides[cur];
+			next = this.params.slides[next];
+			
 			if(cur){
 				cur.style.display = "block";
 				cur.style.opacity = progress;
 			}
-
 			if(next){
 				next.style.display = "block";
 				next.style.opacity = 1-progress;
@@ -98,6 +133,6 @@ var slideScroll = function(options){
 	}
 
 	this.tween = function(el){
-		TweenLite.to(window, this.params.speed, {scrollTo:{x:el.offsetLeft}, ease:Linear.easeInOut});
+		TweenLite.to(window, this.params.speed, {scrollTo:{x:el.offsetLeft,y:el.offsetTop}, ease:Linear.easeInOut});
 	}
 };
