@@ -67,13 +67,7 @@
                 slides:     document.getElementById("images").getElementsByTagName("div"),
                 links:      document.getElementById("menu").getElementsByTagName("a"),
                 sections:   document.getElementById("contents").getElementsByTagName("section")
-            });
-            
-            scroller.init();
-
-            window.onscroll = function(e){
-                scroller.switch(this);
-            }
+            }).init();
         </script>
     </body>
 </html>

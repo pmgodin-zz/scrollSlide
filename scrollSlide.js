@@ -34,6 +34,8 @@ var slideScroll = function(options){
 				return false;
 			}
 		}
+		// auto select slide onload
+		_this.switch(window);
 	}
 
 	this.classes = function(index){
@@ -73,6 +75,9 @@ var slideScroll = function(options){
 		window.onresize = function(e){
 			_this.params.width = _this.params.sections[0].offsetWidth;
 		}
+		window.onscroll = function(e){
+	        _this.switch(this);
+	    }
 	}
 
 	this.tween = function(el){
