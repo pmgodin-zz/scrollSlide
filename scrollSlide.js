@@ -34,7 +34,6 @@ var slideScroll = function(options){
 				return false;
 			}
 		}
-		_this.switch(window);
 	}
 
 	this.classes = function(index){
@@ -51,6 +50,7 @@ var slideScroll = function(options){
 	}
 
 	this.switch = function(el){
+		var _this = this;
 		var step = Math.floor(el.scrollX/this.params.width);
 		var progress = (el.scrollX-(this.params.width*step))/this.params.width;
 		var cur = (sens) ? this.params.slides[step] : this.params.slides[step+1];
@@ -70,7 +70,6 @@ var slideScroll = function(options){
 			next.style.display = "block";
 			next.style.opacity = 1-progress;
 		}
-		var _this = this;
 		window.onresize = function(e){
 			_this.params.width = _this.params.sections[0].offsetWidth;
 		}

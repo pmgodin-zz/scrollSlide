@@ -52,6 +52,7 @@ body{
 	color: #FFF;
 }
 #menu{
+	margin: 1px;
 	position: fixed;
 	z-index: 1000;
 }
