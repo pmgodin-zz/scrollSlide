@@ -3,49 +3,64 @@
 *	scrollSlide: 	Mostly native javascript scroll animated slide show.
 *	by: 			Pierre-Michel Morais-Godin, 2013
 *	github: 		https://github.com/pmgodin/scrollSlide
+*	
+*	Using greensock tween for animation - http://www.greensock.com/tweenlite/history.js
+*	Using history.js for navigation - https://github.com/balupton/History.js/
 *
 */
-var slideScroll = {
-	slides: 		null,
-	lastScroll: 	0,
-	links: 			null,
-	sections: 		null,
-	speed: 			0.5, 
-	width: 			null,
+var slideScroll = function(options){
+	this.params = {
+		slides: 		null,
+		links: 			null,
+		sections: 		null,
+		selected: 		"selected", 
+		speed: 			0.5
+	}
+	for(o in options){
+		this.params[o] = options[o];
+	}
+	this.lastScroll, this.width = 0;
 
-	init: function(options){
-		for(o in options){
-			this[o] = options[o];
-		}
-		this.width = this.sections[0].offsetWidth;
+	this.init = function(){
+		var _this = this;
+		this.params.width = this.params.sections[0].offsetWidth;
 
-		for(var i=0; i<this.sections.length; i++){
-			var _this = this;
-			_this.links[i].href = "#"+i;
-			_this.links[i].onclick = function(){
+		for(var i=0; i<this.params.sections.length; i++){
+			_this.params.links[i].href = "#"+i;
+			_this.params.links[i].onclick = function(){
 				var index = this.href.split("#")[1];
-				_this.tween(_this.sections[index]);
+				_this.classes(index);
+				_this.tween(_this.params.sections[index]);
 				return false;
 			}
 		}
-	},
+		_this.switch(window);
+	}
 
-	hideAll: function(){
-		for(var i=0; i<this.slides.length; i++){
-			this.slides[i].style.display = "none";
+	this.classes = function(index){
+		for(var i=0; i<this.params.links.length; i++){
+			this.params.links[i].className = this.params.links[i].className.replace(" " + this.params.selected,"");
 		}
-	},
+		this.params.links[index].className += " " + this.params.selected;
+	}
 
-	switch: function(el){
-		var step = Math.floor(el.scrollX/this.width);
-		var progress = (el.scrollX-(this.width*step))/this.width;
-		var cur = (sens) ? this.slides[step] : this.slides[step+1];
-		var next = (sens) ? this.slides[step+1] : this.slides[step];
+	this.hideAll = function(){
+		for(var i=0; i<this.params.slides.length; i++){
+			this.params.slides[i].style.display = "none";
+		}
+	}
 
-		var sens = this.lastScroll<el.scrollX;
-		this.lastScroll = el.scrollX;
+	this.switch = function(el){
+		var step = Math.floor(el.scrollX/this.params.width);
+		var progress = (el.scrollX-(this.params.width*step))/this.params.width;
+		var cur = (sens) ? this.params.slides[step] : this.params.slides[step+1];
+		var next = (sens) ? this.params.slides[step+1] : this.params.slides[step];
+
+		var sens = this.params.lastScroll<el.scrollX;
+		this.params.lastScroll = el.scrollX;
 		
 		this.hideAll();
+		this.classes(step);
 
 		if(cur){
 			cur.style.display = "block";
@@ -57,11 +72,11 @@ var slideScroll = {
 		}
 		var _this = this;
 		window.onresize = function(e){
-			_this.width = _this.sections[0].offsetWidth;
+			_this.params.width = _this.params.sections[0].offsetWidth;
 		}
-	},
+	}
 
-	tween: function(el){
-		TweenLite.to(window, this.speed, {scrollTo:{x:el.offsetLeft}, ease:Linear.easeInOut});
+	this.tween = function(el){
+		TweenLite.to(window, this.params.speed, {scrollTo:{x:el.offsetLeft}, ease:Linear.easeInOut});
 	}
 };

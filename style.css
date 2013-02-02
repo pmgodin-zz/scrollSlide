@@ -44,6 +44,9 @@ body{
 	text-decoration: none;
 	text-transform: uppercase;
 }
+#menu li a.selected,
+#menu li a:active,
+#menu li a:focus,
 #menu li a:hover{
 	background: #333;
 	color: #FFF;

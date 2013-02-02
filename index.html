@@ -63,14 +63,16 @@
         <script type="text/javascript" src="greensock-tween/TweenLite.min.js"></script>
         <script src="scrollSlide.js"></script>
         <script type="text/javascript">
-            slideScroll.init({
+            var scroller = new slideScroll({
                 slides:     document.getElementById("images").getElementsByTagName("div"),
                 links:      document.getElementById("menu").getElementsByTagName("a"),
                 sections:   document.getElementById("contents").getElementsByTagName("section")
             });
             
+            scroller.init();
+
             window.onscroll = function(e){
-                slideScroll.switch(this);
+                scroller.switch(this);
             }
         </script>
     </body>
