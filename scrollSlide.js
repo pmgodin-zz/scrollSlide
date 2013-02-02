@@ -9,21 +9,25 @@
 *
 */
 var slideScroll = function(options){
+	var _this = this;
 	this.params = {
-		slides: 		null,
+		axis: 			"x",
 		links: 			null,
 		sections: 		null,
 		selected: 		"selected", 
+		slides: 		null,
 		speed: 			0.5
 	}
 	for(o in options){
 		this.params[o] = options[o];
 	}
-	this.lastScroll, this.width = 0;
+	this.params.lastScroll = 0;
+	this.params.size = {w:0,h:0};
+	this.step = 0;
+	//this.params.window = (window.innerHeight) ? {width: window.innerWidth, height: window.innerHeight} : {width: document.body.clientWidth, height: document.body.clientHeight};
 
 	this.init = function(){
-		var _this = this;
-		this.params.width = this.params.sections[0].offsetWidth;
+		this.params.size.w = this.params.sections[0].offsetWidth;
 
 		for(var i=0; i<this.params.sections.length; i++){
 			_this.params.links[i].href = "#"+i;
@@ -52,28 +56,41 @@ var slideScroll = function(options){
 	}
 
 	this.switch = function(el){
-		var _this = this;
-		var step = Math.floor(el.scrollX/this.params.width);
-		var progress = (el.scrollX-(this.params.width*step))/this.params.width;
-		var cur = (sens) ? this.params.slides[step] : this.params.slides[step+1];
-		var next = (sens) ? this.params.slides[step+1] : this.params.slides[step];
+		for(s in this.params.sections){
+			if(el.scrollX >= this.params.sections[s].offsetLeft && el.scrollX <= (this.params.sections[s].offsetLeft+this.params.sections[s].offsetWidth)){
+				this.step = parseInt(s);
+				this.params.size = {w: this.params.sections[this.step].offsetWidth, h:this.params.sections[this.step].offsetHeight};
+			};
+		}
 
-		var sens = this.params.lastScroll<el.scrollX;
-		this.params.lastScroll = el.scrollX;
-		
-		this.hideAll();
+		var step = this.step;
 		this.classes(step);
 
-		if(cur){
-			cur.style.display = "block";
-			cur.style.opacity = progress;
-		}
-		if(next){
-			next.style.display = "block";
-			next.style.opacity = 1-progress;
+		if(this.params.slides){
+			var progress = 1-((this.params.sections[step].offsetLeft+this.params.sections[step].offsetWidth)-el.scrollX)/this.params.sections[step].offsetWidth;
+			var cur = (sens) ? step : step+1;
+			var next = (sens) ? step+1 : step;
+
+			var sens = this.params.lastScroll<el.scrollX;
+			this.params.lastScroll = el.scrollX;
+			
+			this.hideAll();
+
+			var cur = this.params.slides[cur];
+			var next = this.params.slides[next];
+
+			if(cur){
+				cur.style.display = "block";
+				cur.style.opacity = progress;
+			}
+
+			if(next){
+				next.style.display = "block";
+				next.style.opacity = 1-progress;
+			}
 		}
 		window.onresize = function(e){
-			_this.params.width = _this.params.sections[0].offsetWidth;
+			_this.params.size = {w: _this.params.sections[step].offsetWidth, h:_this.params.sections[step].offsetHeight};
 		}
 		window.onscroll = function(e){
 	        _this.switch(this);
