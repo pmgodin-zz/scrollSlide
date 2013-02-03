@@ -1,3 +1,4 @@
+
 /*
 *
 *	scrollSlide: 	Mostly native javascript scroll animated slide show.
@@ -12,8 +13,10 @@ var slideScroll = function(options){
 	var _this = this;
 	this.params = {
 		axis: 			"x",
+		extras: 		null, 
 		keepLimits: 	true, 
 		links: 			null,
+		padd: 			true,
 		sections: 		null,
 		selected: 		"selected", 
 		slides: 		null,
@@ -22,10 +25,10 @@ var slideScroll = function(options){
 	for(o in options){
 		this.params[o] = options[o];
 	}
-	this.params.lastScroll = 0;
-	this.params.size = {w:0,h:0};
-	this.params.maxSize = 0;
+	this.lastScroll = 0;
+	this.size = {w:0,h:0};
 	this.step = -1;
+	this.sens = null;
 
 	var pos = {
 		scroll: "scrollX",
@@ -41,15 +44,19 @@ var slideScroll = function(options){
 			style: 	"height"
 		}
 	}
-	var scroll = {};
+	var scroll = {
+		first: this.params.sections[0],
+		last: this.params.sections[this.params.sections.length-1],
+		maxSize: 0
+	};
 
-	//this.params.window = (window.innerHeight) ? {width: window.innerWidth, height: window.innerHeight} : {width: document.body.clientWidth, height: document.body.clientHeight};
+	this.window = (window.innerHeight) ? {width: window.innerWidth, height: window.innerHeight} : {width: document.body.clientWidth, height: document.body.clientHeight};
 
 	this.init = function(){
-		this.params.size = {w:this.params.sections[0].offsetWidth, h:this.params.sections[0].offsetHeight};
+		this.size = {w:scroll.first.offsetWidth, h:scroll.first.offsetHeight};
 
 		for(var i=0; i<this.params.sections.length; i++){
-			this.params.maxSize += this.params.sections[i][pos.size];
+			scroll.maxSize += this.params.sections[i][pos.size];
 			if(_this.params.links[i]){
 				_this.params.links[i].href = "#"+i;
 				_this.params.links[i].onclick = function(){
@@ -61,10 +68,11 @@ var slideScroll = function(options){
 			}
 		}
 
-		if(this.params.maxSize < this.params.sections[this.params.sections.length-1][pos.start]){
-			var	add = this.params.sections[this.params.sections.length-1][pos.start]-this.params.maxSize;
-			this.params.sections[this.params.sections.length-1].style[pos.style] = this.params.sections[this.params.sections.length-1][pos.size]+add+"px";
-			console.log(this.params.sections[this.params.sections.length-1][pos.size]);
+		if(this.params.padd){
+			if(scroll.maxSize < scroll.last[pos.start]){
+				var	add = scroll.first[pos.start]+scroll.last[pos.start]-scroll.maxSize;
+				scroll.last.style[pos.style] = scroll.last[pos.size]+add+"px";
+			}
 		}
 
 		// auto select slide onload
@@ -89,13 +97,13 @@ var slideScroll = function(options){
 		for(s in this.params.sections){
 			if(el[pos.scroll] >= this.params.sections[s][pos.start] && el[pos.scroll] <= (this.params.sections[s][pos.start]+this.params.sections[s][pos.size])){
 				this.step = parseInt(s);
-				this.params.size = {w: this.params.sections[this.step].offsetWidth, h:this.params.sections[this.step].offsetHeight};
+				this.size = {w: this.params.sections[this.step].offsetWidth, h:this.params.sections[this.step].offsetHeight};
 			};
 		}
 		
 		var limit = 0;
-		if(el[pos.scroll]<this.params.sections[0][pos.start]) limit = -1;
-		if(el[pos.scroll]>this.params.sections[this.params.sections.length-1][pos.start]) limit = this.params.sections;
+		if(el[pos.scroll]<scroll.first[pos.start]) limit = -1;
+		if(el[pos.scroll]>scroll.last[pos.start]) limit = this.params.sections;
 
 		var step = this.step;
 		var cur = (limit==-1) ? -1 : step+1;
@@ -124,11 +132,16 @@ var slideScroll = function(options){
 				next.style.opacity = 1-progress;
 			}
 		}
+		for(x in this.params.extras){
+			if(typeof this.params.extras[x] == 'function') this.params.extras[x](el,_this);
+		}
 		window.onresize = function(e){
-			_this.params.size = {w: _this.params.sections[step].offsetWidth, h:_this.params.sections[step].offsetHeight};
+			_this.size = {w: _this.params.sections[step].offsetWidth, h:_this.params.sections[step].offsetHeight};
 		}
 		window.onscroll = function(e){
+	        _this.sens = (this[pos.scroll]>_this.lastScroll);
 	        _this.switch(this);
+	        _this.lastScroll = this[pos.scroll];
 	    }
 	}
 
