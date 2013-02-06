@@ -10,9 +10,34 @@
 *
 */
 var slideScroll = function(options){
+	var _arguments = arguments;
+	this.debug = function(log){
+		if(_arguments[1]){
+			if(document.getElementById("divug")){
+				divug = document.getElementById("divug");
+			}else{
+				divug = document.createElement("div");
+				divug.id = "divug";
+				divug.style.position = "fixed";
+				divug.style.zIndex = "6000";
+				divug.style.opacity = "0.7";
+				divug.style.left = "10px";
+				divug.style.top = "10px";
+				divug.style.padding = "10px";
+				divug.style.backgroundColor = "red";
+				divug.style.color = "#FFF"
+				document.body.appendChild(divug);
+			}
+			console.log(log);
+			divug.innerHTML += log + "<br>";
+		}
+	}
+
 	var _this = this;
 	this.params = {
 		axis: 			"x",
+		doubleAxis: 	false,
+		ease: 			Linear.easeInOut,
 		extras: 		null, 
 		keepLimits: 	true, 
 		links: 			null,
@@ -20,9 +45,9 @@ var slideScroll = function(options){
 		sections: 		null,
 		selected: 		"selected", 
 		slides: 		null,
-		speed: 			0.5
+		speed: 			0.5,
 	}
-	for(o in options){
+	for(var o in options){
 		this.params[o] = options[o];
 	}
 	this.lastScroll = 0;
@@ -50,7 +75,20 @@ var slideScroll = function(options){
 		maxSize: 0
 	};
 
-	this.window = (window.innerHeight) ? {width: window.innerWidth, height: window.innerHeight} : {width: document.body.clientWidth, height: document.body.clientHeight};
+	this.window = {
+		width: function(){
+			var w = (window.innerWidth) ? window.innerWidth : document.body.clientWidth;
+			if(!w) w = (window.screen.width) ? window.screen.width : window.outerWidth;
+			if(!w) w = window.screen.availWidth;
+			return w;
+		},
+		height: function(){
+			var h = (window.innerHeight) ? window.innerHeight : document.body.clientHeight;
+			if(!h) h = (window.screen.height) ? window.screen.height : window.outerHeight;
+			if(!h) h = window.screen.availHeight;
+			return h;
+		}
+	}
 
 	this.init = function(){
 		this.size = {w:scroll.first.offsetWidth, h:scroll.first.offsetHeight};
@@ -93,8 +131,12 @@ var slideScroll = function(options){
 	}
 
 	this.switch = function(el){
+		for(var x in this.params.extras){
+			if(typeof this.params.extras[x] == 'function') this.params.extras[x](el,_this);
+		}
+
 		var changed = false;
-		for(s in this.params.sections){
+		for(var s in this.params.sections){
 			if(el[pos.scroll] >= this.params.sections[s][pos.start] && el[pos.scroll] <= (this.params.sections[s][pos.start]+this.params.sections[s][pos.size])){
 				this.step = parseInt(s);
 				this.size = {w: this.params.sections[this.step].offsetWidth, h:this.params.sections[this.step].offsetHeight};
@@ -132,11 +174,9 @@ var slideScroll = function(options){
 				next.style.opacity = 1-progress;
 			}
 		}
-		for(x in this.params.extras){
-			if(typeof this.params.extras[x] == 'function') this.params.extras[x](el,_this);
-		}
 		window.onresize = function(e){
-			_this.size = {w: _this.params.sections[step].offsetWidth, h:_this.params.sections[step].offsetHeight};
+			if(_this.params.sections[step]) _this.size = {w: _this.params.sections[step].offsetWidth, h:_this.params.sections[step].offsetHeight};
+			_this.debug(_this.params.sections[0].offsetWidth);
 		}
 		window.onscroll = function(e){
 	        _this.sens = (this[pos.scroll]>_this.lastScroll);
@@ -146,6 +186,14 @@ var slideScroll = function(options){
 	}
 
 	this.tween = function(el){
-		TweenLite.to(window, this.params.speed, {scrollTo:{x:el.offsetLeft,y:el.offsetTop}, ease:Linear.easeInOut});
+		if(this.params.doubleAxis){
+			TweenLite.to(window, this.params.speed, {scrollTo:{x:el.offsetLeft,y:el.offsetTop}, ease:this.ease});
+		}else{
+			if(this.params.axis=="x"){
+				TweenLite.to(window, this.params.speed, {scrollTo:{x:el.offsetLeft}, ease:this.ease});
+			}else{
+				TweenLite.to(window, this.params.speed, {scrollTo:{y:el.offsetTop}, ease:this.ease});
+			}
+		}
 	}
 };
