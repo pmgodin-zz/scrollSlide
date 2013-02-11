@@ -1,17 +1,17 @@
-
 /*
 *
 *	scrollSlide: 	Mostly native javascript scroll animated slide show.
 *	by: 			Pierre-Michel Morais-Godin, 2013
 *	github: 		https://github.com/pmgodin/scrollSlide
 *	
-*	Using greensock tween for animation - http://www.greensock.com/tweenlite/history.js
-*	Using history.js for navigation - https://github.com/balupton/History.js/
+*	Using greensock tween for animation - http://www.greensock.com/tweenlite/
+*	Using history.js for navigation - https://github.com/balupton/History.js
+*	Using iScroll for mobile scroll support - https://github.com/cubiq/iscroll
 *
 */
 var slideScroll = function(options){
 	var _arguments = arguments;
-	this.debug = function(log){
+	this.log = function(log){
 		if(_arguments[1]){
 			if(document.getElementById("divug")){
 				divug = document.getElementById("divug");
@@ -28,7 +28,7 @@ var slideScroll = function(options){
 				divug.style.color = "#FFF"
 				document.body.appendChild(divug);
 			}
-			console.log(log);
+			console.dir(log);
 			divug.innerHTML += log + "<br>";
 		}
 	}
@@ -37,23 +37,31 @@ var slideScroll = function(options){
 	this.params = {
 		axis: 			"x",
 		doubleAxis: 	false,
-		ease: 			Linear.easeInOut,
+		ease: 			(typeof Linear != "undefined") ? Linear.easeInOut : null,
 		extras: 		null, 
 		keepLimits: 	true, 
 		links: 			null,
+		mobile:      	false,
 		padd: 			true,
+		scrollOn: 		window,
 		sections: 		null,
 		selected: 		"selected", 
 		slides: 		null,
-		speed: 			0.5,
+		snap: 			false,
+		speed: 			0.5
 	}
+
 	for(var o in options){
 		this.params[o] = options[o];
 	}
+
 	this.lastScroll = 0;
 	this.size = {w:0,h:0};
 	this.step = -1;
-	this.sens = null;
+	this.foward = null;
+	this.scrolling = false;
+	var progress = -1;
+	this.progress = progress;
 
 	var pos = {
 		scroll: "scrollX",
@@ -61,6 +69,7 @@ var slideScroll = function(options){
 		size: 	"offsetWidth",
 		style: 	"width"
 	}
+	if(!this.params.scrollOn[pos.scroll]) pos.scroll = "scrollLeft";
 	if(this.params.axis=="y"){
 		pos = {
 			scroll: "scrollY",
@@ -68,53 +77,178 @@ var slideScroll = function(options){
 			size: 	"offsetHeight",
 			style: 	"height"
 		}
+		if(!this.params.scrollOn[pos.scroll]) pos.scroll = "scrollTop";
 	}
-	var scroll = {
+	this.scroll = {
+		current: this.params.sections[0],
 		first: this.params.sections[0],
 		last: this.params.sections[this.params.sections.length-1],
-		maxSize: 0
+		maxSize: 0,
+		pos: 0
 	};
+
+	if(this.params.mobile /*&& typeof Touch == "object"*/){
+		/* help viewport width to be calculed has expected */
+    	if (navigator.userAgent.match(/iPhone/i) || navigator.userAgent.match(/iPad/i)) {
+		    var viewportmeta = document.querySelector('meta[name="viewport"]');
+		    if (viewportmeta) {
+		        viewportmeta.content = 'width=device-width, minimum-scale=1.0, maximum-scale=1.0, initial-scale=1.0';
+		        document.body.addEventListener('gesturestart', function () {
+		            viewportmeta.content = 'width=device-width, minimum-scale=0.25, maximum-scale=1.6';
+		        }, false);
+		    }
+		}
+		/* add iScroll for mobile if exists */
+		if(typeof iScroll == "function"){
+			var iScrollOptions = {};
+			if(_this.params.snap) iScrollOptions.snap = _this.params.sections;
+			iScrollOptions.onScrollEnd = function(){
+				_this.scroll.pos = (_this.params.axis == "x") ? Math.abs(_this.params.mobile.x) : Math.abs(_this.params.mobile.y);
+				_this.switch();
+			}
+
+			function loaded() {
+			    _this.params.mobile = new iScroll(_this.params.scrollOn,iScrollOptions);
+			    var proto = Object.getPrototypeOf(_this.params.mobile) || 
+			    	_this.params.mobile.__proto__ ||
+			    	_this.params.mobile.constructor.prototype;
+
+			    proto._startAni = function () {
+					var m = Math,
+						that = this,
+						startX = that.x, startY = that.y,
+						startTime = Date.now(),
+						step, easeOut,
+						animate,
+						nextFrame = (function() {
+							return window.requestAnimationFrame ||
+								window.webkitRequestAnimationFrame ||
+								window.mozRequestAnimationFrame ||
+								window.oRequestAnimationFrame ||
+								window.msRequestAnimationFrame ||
+								function(callback) { return setTimeout(callback, 1); };
+						})(),
+						cancelFrame = (function () {
+							return window.cancelRequestAnimationFrame ||
+								window.webkitCancelAnimationFrame ||
+								window.webkitCancelRequestAnimationFrame ||
+								window.mozCancelRequestAnimationFrame ||
+								window.oCancelRequestAnimationFrame ||
+								window.msCancelRequestAnimationFrame ||
+								clearTimeout;
+						})();
+
+					if (that.animating) return;
+					
+					if (!that.steps.length) {
+						that._resetPos(400);
+						return;
+					}
+					
+					step = that.steps.shift();
+					
+					if (step.x == startX && step.y == startY) step.time = 0;
+
+					that.animating = true;
+					that.moved = true;
+					
+					if (that.options.useTransition) {
+						that._transitionTime(step.time);
+						that._pos(step.x, step.y);
+						that.animating = false;
+						if (step.time) that._bind(TRNEND_EV);
+						else that._resetPos(0);
+						return;
+					}
+
+					animate = function () {
+						var now = Date.now(),
+							newX, newY;
+
+						if (now >= startTime + step.time) {
+							that._pos(step.x, step.y);
+							that.animating = false;
+							if (that.options.onAnimationEnd) that.options.onAnimationEnd.call(that);			// Execute custom code on animation end
+							that._startAni();
+							return;
+						}
+
+						now = (now - startTime) / step.time - 1;
+						easeOut = m.sqrt(1 - now * now);
+						newX = (step.x - startX) * easeOut + startX;
+						newY = (step.y - startY) * easeOut + startY;
+						that._pos(newX, newY);
+						if (that.animating){
+							that.aniTime = nextFrame(animate);
+							_this.scroll.pos = (_this.params.axis == "x") ? Math.abs(_this.params.mobile.x) : Math.abs(_this.params.mobile.y);
+						    _this.switch();
+						}
+					};
+
+					animate();
+				};
+			}
+			document.addEventListener('touchmove', function (e) { 
+				e.preventDefault();
+				_this.scroll.pos = (_this.params.axis == "x") ? Math.abs(_this.params.mobile.x) : Math.abs(_this.params.mobile.y);
+				_this.switch();
+			}, false);
+	       	document.addEventListener('DOMContentLoaded', loaded, false);
+	    }else{
+	    	this.params.mobile = false;
+	    }
+	}else{
+	    this.params.mobile = false;
+	}
+	if(!this.params.mobile){
+		this.params.scrollOn.onscroll = function(e){
+	        _this.scroll.pos = this[pos.scroll];
+		    _this.switch();
+	    }
+	}
 
 	this.window = {
 		width: function(){
-			var w = (window.innerWidth) ? window.innerWidth : document.body.clientWidth;
-			if(!w) w = (window.screen.width) ? window.screen.width : window.outerWidth;
-			if(!w) w = window.screen.availWidth;
-			return w;
+			return window.innerWidth || 
+				document.body.clientWidth ||
+				window.screen.width ||
+				window.outerWidth ||
+				window.screen.availWidth;
 		},
 		height: function(){
-			var h = (window.innerHeight) ? window.innerHeight : document.body.clientHeight;
-			if(!h) h = (window.screen.height) ? window.screen.height : window.outerHeight;
-			if(!h) h = window.screen.availHeight;
-			return h;
+			return window.innerHeight ||
+				document.body.clientHeight ||
+				window.screen.height ||
+				window.outerHeight || 
+				window.screen.availHeight;
 		}
 	}
 
 	this.init = function(){
-		this.size = {w:scroll.first.offsetWidth, h:scroll.first.offsetHeight};
+		this.size = {w:_this.scroll.first.offsetWidth, h:_this.scroll.first.offsetHeight};
 
 		for(var i=0; i<this.params.sections.length; i++){
-			scroll.maxSize += this.params.sections[i][pos.size];
+			_this.scroll.maxSize += this.params.sections[i][pos.size];
 			if(_this.params.links[i]){
 				_this.params.links[i].href = "#"+i;
 				_this.params.links[i].onclick = function(){
 					var index = this.href.split("#")[1];
-					_this.classes(index);
-					_this.tween(_this.params.sections[index]);
+					_this.tween(index);
 					return false;
 				}
 			}
 		}
 
 		if(this.params.padd){
-			if(scroll.maxSize < scroll.last[pos.start]){
-				var	add = scroll.first[pos.start]+scroll.last[pos.start]-scroll.maxSize;
-				scroll.last.style[pos.style] = scroll.last[pos.size]+add+"px";
+			if(_this.scroll.maxSize < _this.scroll.last[pos.start]){
+				var	add = _this.scroll.first[pos.start]+_this.scroll.last[pos.start]-_this.scroll.maxSize;
+				_this.scroll.last.style[pos.style] = _this.scroll.last[pos.size]+add+"px";
 			}
 		}
 
 		// auto select slide onload
-		_this.switch(window);
+		_this.scroll.pos = _this.params.scrollOn[pos.scroll];
+		_this.switch();
 	}
 
 	this.classes = function(index){
@@ -130,70 +264,84 @@ var slideScroll = function(options){
 		}
 	}
 
-	this.switch = function(el){
+	this.switch = function(){
+		_this.foward = (_this.scroll.pos>_this.lastScroll);
+
 		for(var x in this.params.extras){
 			if(typeof this.params.extras[x] == 'function') this.params.extras[x](el,_this);
 		}
 
-		var changed = false;
 		for(var s in this.params.sections){
-			if(el[pos.scroll] >= this.params.sections[s][pos.start] && el[pos.scroll] <= (this.params.sections[s][pos.start]+this.params.sections[s][pos.size])){
+			if(this.scroll.pos >= this.params.sections[s][pos.start] && this.scroll.pos <= (this.params.sections[s][pos.start]+this.params.sections[s][pos.size])){
 				this.step = parseInt(s);
-				this.size = {w: this.params.sections[this.step].offsetWidth, h:this.params.sections[this.step].offsetHeight};
+				this.scroll.current = this.params.sections[this.step];
+				this.size = {w: this.scroll.current.offsetWidth, h: this.scroll.current.offsetHeight};
 			};
 		}
 		
 		var limit = 0;
-		if(el[pos.scroll]<scroll.first[pos.start]) limit = -1;
-		if(el[pos.scroll]>scroll.last[pos.start]) limit = this.params.sections;
+		if(this.scroll.pos<this.scroll.first[pos.start]) limit = -1;
+		if(this.scroll.pos>this.scroll.last[pos.start]) limit = this.params.sections;
 
-		var step = this.step;
-		var cur = (limit==-1) ? -1 : step+1;
-		var next = (limit==-1) ? 0 :step;
+		var cur = (limit==-1) ? -1 : this.step+1;
+		var next = (limit==-1) ? 0 : this.step;
 
 		if(limit==0){
-			this.classes(step);
+			this.classes(this.step);
 		}else{
 			this.classes(limit);
 		}
 		if(!this.params.keepLimits) limit = 0;
 		
-		if(limit==0 && this.params.slides && this.params.sections[step]){
-			var progress = Math.abs(1-((this.params.sections[step][pos.start]+this.params.sections[step][pos.size])-el[pos.scroll])/this.params.sections[step][pos.size]);
-			this.hideAll();
+		if(limit==0 && this.params.slides && this.scroll.current){
+			progress = Number(Math.abs(1-((this.scroll.current[pos.start]+this.scroll.current[pos.size])-this.scroll.pos)/this.scroll.current[pos.size]).toFixed(1));
+			if(this.progress != progress){
+				this.progress = progress;
+				this.hideAll();
 
-			cur = this.params.slides[cur];
-			next = this.params.slides[next];
-			
-			if(cur){
-				cur.style.display = "block";
-				cur.style.opacity = progress;
-			}
-			if(next){
-				next.style.display = "block";
-				next.style.opacity = 1-progress;
+				cur = this.params.slides[cur];
+				next = this.params.slides[next];
+				
+				if(cur){
+					cur.style.display = "block";
+					cur.style.opacity = progress;
+				}
+				if(next){
+					next.style.display = "block";
+					next.style.opacity = 1-progress;
+				}
 			}
 		}
-		window.onresize = function(e){
-			if(_this.params.sections[step]) _this.size = {w: _this.params.sections[step].offsetWidth, h:_this.params.sections[step].offsetHeight};
-			_this.debug(_this.params.sections[0].offsetWidth);
-		}
-		window.onscroll = function(e){
-	        _this.sens = (this[pos.scroll]>_this.lastScroll);
-	        _this.switch(this);
-	        _this.lastScroll = this[pos.scroll];
-	    }
+
+		_this.lastScroll = _this.scroll.pos;
 	}
 
-	this.tween = function(el){
-		if(this.params.doubleAxis){
-			TweenLite.to(window, this.params.speed, {scrollTo:{x:el.offsetLeft,y:el.offsetTop}, ease:this.ease});
+	this.tween = function(index){
+		var el = this.params.sections[index];
+		this.classes(index);
+		if(this.params.mobile){
+			this.params.mobile.scrollTo(el.offsetLeft, el.offsetTop, (this.speed*1000));
+			this.log(el.offsetLeft);
 		}else{
-			if(this.params.axis=="x"){
-				TweenLite.to(window, this.params.speed, {scrollTo:{x:el.offsetLeft}, ease:this.ease});
+			if(typeof TweenLite == "function"){
+				if(this.params.doubleAxis){
+					TweenLite.to(this.params.scrollOn, this.params.speed, {scrollTo:{x:el.offsetLeft,y:el.offsetTop}, ease:this.ease});
+				}else{
+					if(this.params.axis=="x"){
+						TweenLite.to(this.params.scrollOn, this.params.speed, {scrollTo:{x:el.offsetLeft}, ease:this.ease});
+					}else{
+						TweenLite.to(this.params.scrollOn, this.params.speed, {scrollTo:{y:el.offsetTop}, ease:this.ease});
+					}
+				}
 			}else{
-				TweenLite.to(window, this.params.speed, {scrollTo:{y:el.offsetTop}, ease:this.ease});
+				console.log("Please add TweenLite – A Lightweight, FAST Tweening Engine - http://www.greensock.com/tweenlite/");
 			}
 		}
+	}
+
+	var _resize = window.onresize;
+	window.onresize = function(e){
+		if(typeof _resize == "function") _resize(e);
+		if(_this.scroll.current) _this.size = {w: _this.scroll.current.offsetWidth, h:_this.scroll.current.offsetHeight};
 	}
 };
