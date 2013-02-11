@@ -87,7 +87,7 @@ var slideScroll = function(options){
 		pos: 0
 	};
 
-	if(this.params.mobile /*&& typeof Touch == "object"*/){
+	if(this.params.mobile && (typeof Touch == "object" || this.params.mobile=="force")){
 		/* help viewport width to be calculed has expected */
     	if (navigator.userAgent.match(/iPhone/i) || navigator.userAgent.match(/iPad/i)) {
 		    var viewportmeta = document.querySelector('meta[name="viewport"]');
@@ -178,10 +178,10 @@ var slideScroll = function(options){
 						newX = (step.x - startX) * easeOut + startX;
 						newY = (step.y - startY) * easeOut + startY;
 						that._pos(newX, newY);
+						_this.scroll.pos = (_this.params.axis == "x") ? Math.abs(_this.params.mobile.x) : Math.abs(_this.params.mobile.y);
+						_this.switch();
 						if (that.animating){
 							that.aniTime = nextFrame(animate);
-							_this.scroll.pos = (_this.params.axis == "x") ? Math.abs(_this.params.mobile.x) : Math.abs(_this.params.mobile.y);
-						    _this.switch();
 						}
 					};
 
@@ -320,8 +320,7 @@ var slideScroll = function(options){
 		var el = this.params.sections[index];
 		this.classes(index);
 		if(this.params.mobile){
-			this.params.mobile.scrollTo(el.offsetLeft, el.offsetTop, (this.speed*1000));
-			this.log(el.offsetLeft);
+			this.params.mobile.scrollToElement(el, (this.params.speed*1000));
 		}else{
 			if(typeof TweenLite == "function"){
 				if(this.params.doubleAxis){
