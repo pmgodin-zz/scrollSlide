@@ -43,7 +43,7 @@ var slideScroll = function(options){
 		links: 			null,
 		mobile:      	false,
 		padd: 			true,
-		scrollOn: 		window,
+		scrollOn: 		(window.scrollY != undefined) ? window : document.documentElement,
 		sections: 		null,
 		selected: 		"selected", 
 		slides: 		null,
@@ -63,28 +63,34 @@ var slideScroll = function(options){
 	var progress = -1;
 	this.progress = progress;
 
-	var pos = {
+	this.pos = {
 		scroll: "scrollX",
 		start:  "offsetLeft",
 		size: 	"offsetWidth",
 		style: 	"width"
 	}
-	if(!this.params.scrollOn[pos.scroll]) pos.scroll = "scrollLeft";
+	if(this.params.scrollOn[this.pos.scroll] == undefined) this.pos.scroll = "scrollLeft";
+	if(this.params.scrollOn[this.pos.scroll] == undefined) this.pos.scroll = "pageXOffset";
+	if(this.params.scrollOn[this.pos.scroll] == undefined) this.pos.scroll = "screenX";
+	if(this.params.scrollOn[this.pos.scroll] == undefined) this.pos.scroll = "screenLeft";
 	if(this.params.axis=="y"){
-		pos = {
+		this.pos = {
 			scroll: "scrollY",
 			start:  "offsetTop",
 			size: 	"offsetHeight",
 			style: 	"height"
 		}
-		if(!this.params.scrollOn[pos.scroll]) pos.scroll = "scrollTop";
+		if(this.params.scrollOn[this.pos.scroll] == undefined) this.pos.scroll = "scrollTop";
+		if(this.params.scrollOn[this.pos.scroll] == undefined) this.pos.scroll = "pageYOffset";
+		if(this.params.scrollOn[this.pos.scroll] == undefined) this.pos.scroll = "screenY";
+		if(this.params.scrollOn[this.pos.scroll] == undefined) this.pos.scroll = "screenTop";
 	}
 	this.scroll = {
 		current: this.params.sections[0],
 		first: this.params.sections[0],
 		last: this.params.sections[this.params.sections.length-1],
 		maxSize: 0,
-		pos: 0
+		now: 0
 	};
 
 	if(this.params.mobile && (typeof Touch == "object" || this.params.mobile=="force")){
@@ -98,13 +104,14 @@ var slideScroll = function(options){
 		        }, false);
 		    }
 		}
+
 		/* add iScroll for mobile if exists */
 		if(typeof iScroll == "function"){
 			var iScrollOptions = {};
 			if(_this.params.snap) iScrollOptions.snap = _this.params.sections;
 			iScrollOptions.onScrollEnd = function(){
-				_this.scroll.pos = (_this.params.axis == "x") ? Math.abs(_this.params.mobile.x) : Math.abs(_this.params.mobile.y);
-				_this.switch();
+				_this.scroll.now = (_this.params.axis == "x") ? Math.abs(_this.params.mobile.x) : Math.abs(_this.params.mobile.y);
+				_this.switchSlide();
 			}
 
 			function loaded() {
@@ -178,8 +185,8 @@ var slideScroll = function(options){
 						newX = (step.x - startX) * easeOut + startX;
 						newY = (step.y - startY) * easeOut + startY;
 						that._pos(newX, newY);
-						_this.scroll.pos = (_this.params.axis == "x") ? Math.abs(_this.params.mobile.x) : Math.abs(_this.params.mobile.y);
-						_this.switch();
+						_this.scroll.now = (_this.params.axis == "x") ? Math.abs(_this.params.mobile.x) : Math.abs(_this.params.mobile.y);
+						_this.switchSlide();
 						if (that.animating){
 							that.aniTime = nextFrame(animate);
 						}
@@ -190,8 +197,8 @@ var slideScroll = function(options){
 			}
 			document.addEventListener('touchmove', function (e) { 
 				e.preventDefault();
-				_this.scroll.pos = (_this.params.axis == "x") ? Math.abs(_this.params.mobile.x) : Math.abs(_this.params.mobile.y);
-				_this.switch();
+				_this.scroll.now = (_this.params.axis == "x") ? Math.abs(_this.params.mobile.x) : Math.abs(_this.params.mobile.y);
+				_this.switchSlide();
 			}, false);
 	       	document.addEventListener('DOMContentLoaded', loaded, false);
 	    }else{
@@ -202,8 +209,8 @@ var slideScroll = function(options){
 	}
 	if(!this.params.mobile){
 		this.params.scrollOn.onscroll = function(e){
-	        _this.scroll.pos = this[pos.scroll];
-		    _this.switch();
+	        _this.scroll.now = this[_this.pos.scroll];
+		    _this.switchSlide();
 	    }
 	}
 
@@ -228,7 +235,7 @@ var slideScroll = function(options){
 		this.size = {w:_this.scroll.first.offsetWidth, h:_this.scroll.first.offsetHeight};
 
 		for(var i=0; i<this.params.sections.length; i++){
-			_this.scroll.maxSize += this.params.sections[i][pos.size];
+			_this.scroll.maxSize += this.params.sections[i][_this.pos.size];
 			if(_this.params.links[i]){
 				_this.params.links[i].href = "#"+i;
 				_this.params.links[i].onclick = function(){
@@ -240,15 +247,20 @@ var slideScroll = function(options){
 		}
 
 		if(this.params.padd){
-			if(_this.scroll.maxSize < _this.scroll.last[pos.start]){
-				var	add = _this.scroll.first[pos.start]+_this.scroll.last[pos.start]-_this.scroll.maxSize;
-				_this.scroll.last.style[pos.style] = _this.scroll.last[pos.size]+add+"px";
+			if(_this.scroll.maxSize < _this.scroll.last[_this.pos.start]){
+				var	add = _this.scroll.first[_this.pos.start]+_this.scroll.last[_this.pos.start]-_this.scroll.maxSize;
+				_this.scroll.last.style[_this.pos.style] = _this.scroll.last[_this.pos.size]+add+"px";
 			}
 		}
 
 		// auto select slide onload
-		_this.scroll.pos = _this.params.scrollOn[pos.scroll];
-		_this.switch();
+		_this.scroll.now = _this.params.scrollOn[_this.pos.scroll];
+		_this.switchSlide();
+
+		var _arguments = arguments;
+		if(_arguments[0] && typeof _arguments[0]) _arguments[0](_this);
+
+		return _this;
 	}
 
 	this.classes = function(index){
@@ -264,15 +276,15 @@ var slideScroll = function(options){
 		}
 	}
 
-	this.switch = function(){
-		_this.foward = (_this.scroll.pos>_this.lastScroll);
+	this.switchSlide = function(){
+		this.foward = (this.scroll.now>this.lastScroll);
 
 		for(var x in this.params.extras){
-			if(typeof this.params.extras[x] == 'function') this.params.extras[x](el,_this);
+			if(typeof this.params.extras[x] == 'function') this.params.extras[x](_this);
 		}
 
 		for(var s in this.params.sections){
-			if(this.scroll.pos >= this.params.sections[s][pos.start] && this.scroll.pos <= (this.params.sections[s][pos.start]+this.params.sections[s][pos.size])){
+			if(this.scroll.now >= this.params.sections[s][this.pos.start] && this.scroll.now <= (this.params.sections[s][this.pos.start]+this.params.sections[s][this.pos.size])){
 				this.step = parseInt(s);
 				this.scroll.current = this.params.sections[this.step];
 				this.size = {w: this.scroll.current.offsetWidth, h: this.scroll.current.offsetHeight};
@@ -280,12 +292,12 @@ var slideScroll = function(options){
 		}
 		
 		var limit = 0;
-		if(this.scroll.pos<this.scroll.first[pos.start]) limit = -1;
-		if(this.scroll.pos>this.scroll.last[pos.start]) limit = this.params.sections;
+		if(this.scroll.now<this.scroll.first[this.pos.start]) limit = -1;
+		if(this.scroll.now>this.scroll.last[this.pos.start]) limit = this.params.sections;
 
 		var cur = (limit==-1) ? -1 : this.step+1;
 		var next = (limit==-1) ? 0 : this.step;
-
+		
 		if(limit==0){
 			this.classes(this.step);
 		}else{
@@ -294,7 +306,7 @@ var slideScroll = function(options){
 		if(!this.params.keepLimits) limit = 0;
 		
 		if(limit==0 && this.params.slides && this.scroll.current){
-			progress = Number(Math.abs(1-((this.scroll.current[pos.start]+this.scroll.current[pos.size])-this.scroll.pos)/this.scroll.current[pos.size]).toFixed(1));
+			progress = Number(Math.abs(1-((this.scroll.current[this.pos.start]+this.scroll.current[this.pos.size])-this.scroll.now)/this.scroll.current[this.pos.size]).toFixed(1));
 			if(this.progress != progress){
 				this.progress = progress;
 				this.hideAll();
@@ -313,7 +325,7 @@ var slideScroll = function(options){
 			}
 		}
 
-		_this.lastScroll = _this.scroll.pos;
+		_this.lastScroll = _this.scroll.now;
 	}
 
 	this.tween = function(index){
