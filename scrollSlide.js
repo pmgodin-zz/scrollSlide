@@ -9,6 +9,7 @@
 *	Using iScroll for mobile scroll support - https://github.com/cubiq/iscroll
 *
 */
+if(document.getElementsByTagName("html")[0].className.indexOf("no-touch")==-1) var windowTouch = true;
 var slideScroll = function(options){
 	var _arguments = arguments;
 	this.log = function(log){
@@ -93,7 +94,7 @@ var slideScroll = function(options){
 		now: 0
 	};
 
-	if(this.params.mobile && (typeof Touch == "object" || this.params.mobile=="force")){
+	if(this.params.mobile && (windowTouch || this.params.mobile=="force")){
 		/* help viewport width to be calculed has expected */
     	if (navigator.userAgent.match(/iPhone/i) || navigator.userAgent.match(/iPad/i)) {
 		    var viewportmeta = document.querySelector('meta[name="viewport"]');
